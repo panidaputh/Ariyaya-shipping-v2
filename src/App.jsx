@@ -13,13 +13,9 @@ function App() {
   const [customerLevel, setCustomerLevel] = useState("Silver Rabbit");
   const [productType, setProductType] = useState("สินค้าทั่วไป");
   const [shippingMethod, setShippingMethod] = useState("ทางเรือ");
-  const [customRates, setCustomRates] = useState({
-    perKg: "",
-    perCbm: "",
-  });
   const [calculationResult, setCalculationResult] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false); // สถานะสำหรับ modal
-  const [modalMessage, setModalMessage] = useState(""); // ข้อความสำหรับ modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
 
   // แสดง modal error แทนการใช้ alert
   const showErrorModal = (message) => {
@@ -35,14 +31,6 @@ function App() {
       height: "",
     });
     setWeight("");
-
-    // Reset custom rates if in "other" tab
-    setCustomRates({
-      perKg: "",
-      perCbm: "",
-    });
-
-    // Reset calculation result
     setCalculationResult(null);
   };
 
@@ -90,10 +78,6 @@ function App() {
     setDimensions({ ...dimensions, [dimension]: value });
   };
 
-  const handleCustomRateChange = (type, value) => {
-    setCustomRates({ ...customRates, [type]: value });
-  };
-
   // เพิ่มฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงค่า weight
   const handleWeightChange = (e) => {
     const value = e.target.value;
@@ -122,26 +106,8 @@ function App() {
       return;
     }
 
-    let rates;
-
-    if (calculationType === "company") {
-      // Get rates from company pricing table
-      rates = pricingRates[customerLevel][shippingMethod][productType];
-    } else {
-      // Custom rates from user input
-      const perKgRate = Math.abs(parseFloat(customRates.perKg));
-      const perCbmRate = Math.abs(parseFloat(customRates.perCbm));
-
-      if (isNaN(perKgRate) || isNaN(perCbmRate)) {
-        showErrorModal("กรุณากรอกอัตราค่าขนส่งให้ครบถ้วน");
-        return;
-      }
-
-      rates = {
-        perKg: perKgRate,
-        perCbm: perCbmRate,
-      };
-    }
+    // Get rates from company pricing table
+    const rates = pricingRates[customerLevel][shippingMethod][productType];
 
     // Formula 1: Calculate volume weight
     const volumeWeight = (width * length * height) / 5000;
@@ -171,11 +137,11 @@ function App() {
         length: parseFloat(length.toFixed(2)), 
         height: parseFloat(height.toFixed(2)) 
       },
-      customerLevel: calculationType === "company" ? customerLevel : "N/A",
-      productType: calculationType === "company" ? productType : "N/A",
-      shippingMethod: calculationType === "company" ? shippingMethod : "N/A",
+      customerLevel,
+      productType,
+      shippingMethod,
       rates,
-      isCustomRate: calculationType === "custom",
+      isCustomRate: false,
     });
   };
 
@@ -259,155 +225,60 @@ function App() {
           </div>
         </div>
 
-        {/* เปลี่ยนส่วนเลือกรูปแบบการคำนวณจาก dropdown เป็น radio */}
-        <div className="bg-white/60 backdrop-blur-sm p-4 sm:p-6 rounded-xl mb-6 shadow-lg border border-rose-100">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-rose-800">
-            <span className="inline-block mr-2">🔁</span>รูปแบบการคำนวณ
-          </h2>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <label className="flex items-center space-x-2 cursor-pointer p-3 rounded-lg hover:bg-rose-50 transition-colors">
-              <input
-                type="radio"
-                value="company"
-                checked={calculationType === "company"}
-                onChange={(e) => setCalculationType(e.target.value)}
-                className="w-4 h-4 text-rose-600 border-rose-300 focus:ring-rose-500"
-              />
-              <span className="text-gray-700">คำนวณด้วยเรทค่าขนส่งของทางบริษัท</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer p-3 rounded-lg hover:bg-rose-50 transition-colors">
-              <input
-                type="radio"
-                value="custom"
-                checked={calculationType === "custom"}
-                onChange={(e) => setCalculationType(e.target.value)}
-                className="w-4 h-4 text-rose-600 border-rose-300 focus:ring-rose-500"
-              />
-              <span className="text-gray-700">คำนวณด้วยเรทค่าขนส่งที่กำหนดเอง</span>
-            </label>
-          </div>
-        </div>
-
-        {/* แสดงทั้งสองส่วนพร้อมกัน */}
-        <div className="grid grid-cols-1 gap-6 mb-6">
-          {/* ส่วนคำนวณด้วยเรทของบริษัท */}
-          <div
-            className={`${
-              calculationType === "custom"
-                ? "opacity-50 pointer-events-none"
-                : ""
-            }`}
-          >
-            <div className="bg-gray-50 p-4 sm:p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">
-                <span className="inline-block mr-2">🏬</span>
-                ข้อมูลการคำนวณด้วยเรทของบริษัท
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Customer level */}
-                <div>
-                  <label className="text-base font-medium text-gray-700 block mb-2">
-                    <span className="inline-block mr-2">👤</span>ระดับของลูกค้า
-                  </label>
-                  <select
-                    className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none bg-white"
-                    value={customerLevel}
-                    onChange={(e) => setCustomerLevel(e.target.value)}
-                    disabled={calculationType === "custom"}
-                  >
-                    <option value="Silver Rabbit">Silver Rabbit</option>
-                    <option value="Diamond Rabbit">Diamond Rabbit</option>
-                    <option value="Star Rabbit">Star Rabbit</option>
-                  </select>
-                </div>
-
-                {/* Product type */}
-                <div>
-                  <label className="text-base font-medium text-gray-700 block mb-2">
-                    <span className="inline-block mr-2">🏷️</span>ประเภทสินค้า
-                  </label>
-                  <select
-                    className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none bg-white"
-                    value={productType}
-                    onChange={(e) => setProductType(e.target.value)}
-                    disabled={calculationType === "custom"}
-                  >
-                    <option value="สินค้าทั่วไป">สินค้าทั่วไป</option>
-                    <option value="สินค้าประเภทที่ 1,2">
-                      สินค้าประเภทที่ 1,2
-                    </option>
-                    <option value="สินค้าพิเศษ">สินค้าพิเศษ</option>
-                  </select>
-                </div>
-
-                {/* Shipping method */}
-                <div>
-                  <label className="text-base font-medium text-gray-700 block mb-2">
-                    <span className="inline-block mr-2">🚢🚚</span>การขนส่ง
-                  </label>
-                  <select
-                    className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none bg-white"
-                    value={shippingMethod}
-                    onChange={(e) => setShippingMethod(e.target.value)}
-                    disabled={calculationType === "custom"}
-                  >
-                    <option value="ทางเรือ">ทางเรือ</option>
-                    <option value="ทางรถ">ทางรถ</option>
-                  </select>
-                </div>
-              </div>
+        {/* ส่วนคำนวณด้วยเรทของบริษัท */}
+        <div className="bg-gray-50 p-4 sm:p-6 rounded-lg shadow-sm mb-6">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">
+            <span className="inline-block mr-2">🏬</span>
+            ข้อมูลการคำนวณด้วยเรทของบริษัท
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Customer level */}
+            <div>
+              <label className="text-base font-medium text-gray-700 block mb-2">
+                <span className="inline-block mr-2">👤</span>ระดับของลูกค้า
+              </label>
+              <select
+                className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none bg-white"
+                value={customerLevel}
+                onChange={(e) => setCustomerLevel(e.target.value)}
+              >
+                <option value="Silver Rabbit">Silver Rabbit</option>
+                <option value="Diamond Rabbit">Diamond Rabbit</option>
+                <option value="Star Rabbit">Star Rabbit</option>
+              </select>
             </div>
-          </div>
 
-          {/* ส่วนคำนวณด้วยเรทที่กำหนดเอง */}
-          <div
-            className={`${
-              calculationType === "company"
-                ? "opacity-50 pointer-events-none"
-                : ""
-            }`}
-          >
-            <div className="bg-gray-50 p-4 sm:p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">
-                <span className="inline-block mr-2">🏣</span>
-                ข้อมูลการคำนวณด้วยเรทที่กำหนดเอง
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-base font-medium text-gray-700 block mb-2">
-                    <span className="inline-block mr-2"></span>เรทค่าขนส่ง :
-                    กก.
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none"
-                    placeholder="บาท/กก."
-                    value={customRates.perKg}
-                    onChange={(e) =>
-                      handleCustomRateChange("perKg", e.target.value)
-                    }
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    disabled={calculationType === "company"}
-                  />
-                </div>
-                <div>
-                  <label className="text-base font-medium text-gray-700 block mb-2">
-                    <span className="inline-block mr-2"></span>เรทค่าขนส่ง :
-                    คิว
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none"
-                    placeholder="บาท/คิว"
-                    value={customRates.perCbm}
-                    onChange={(e) => handleCustomRateChange("perCbm", e.target.value)}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    disabled={calculationType === "company"}
-                  />
-                </div>
-              </div>
+            {/* Product type */}
+            <div>
+              <label className="text-base font-medium text-gray-700 block mb-2">
+                <span className="inline-block mr-2">🏷️</span>ประเภทสินค้า
+              </label>
+              <select
+                className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none bg-white"
+                value={productType}
+                onChange={(e) => setProductType(e.target.value)}
+              >
+                <option value="สินค้าทั่วไป">สินค้าทั่วไป</option>
+                <option value="สินค้าประเภทที่ 1,2">
+                  สินค้าประเภทที่ 1,2
+                </option>
+                <option value="สินค้าพิเศษ">สินค้าพิเศษ</option>
+              </select>
+            </div>
+
+            {/* Shipping method */}
+            <div>
+              <label className="text-base font-medium text-gray-700 block mb-2">
+                <span className="inline-block mr-2">🚢🚚</span>การขนส่ง
+              </label>
+              <select
+                className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none bg-white"
+                value={shippingMethod}
+                onChange={(e) => setShippingMethod(e.target.value)}
+              >
+                <option value="ทางเรือ">ทางเรือ</option>
+                <option value="ทางรถ">ทางรถ</option>
+              </select>
             </div>
           </div>
         </div>
@@ -542,58 +413,41 @@ function App() {
               </div>
 
               <div className="space-y-2">
-                {!calculationResult.isCustomRate ? (
-                  <>
-                    <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-rose-100">
-                      <span className="font-medium text-rose-700 flex items-center">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        ระดับลูกค้า:
-                      </span>
-                      <span className="text-gray-800 ml-6">
-                        {calculationResult.customerLevel}
-                      </span>
-                    </div>
+                <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-rose-100">
+                  <span className="font-medium text-rose-700 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    ระดับลูกค้า:
+                  </span>
+                  <span className="text-gray-800 ml-6">
+                    {calculationResult.customerLevel}
+                  </span>
+                </div>
 
-                    <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-rose-100">
-                      <span className="font-medium text-rose-700 flex items-center">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                        ประเภทสินค้า:
-                      </span>
-                      <span className="text-gray-800 ml-6">
-                        {calculationResult.productType}
-                      </span>
-                    </div>
+                <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-rose-100">
+                  <span className="font-medium text-rose-700 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    ประเภทสินค้า:
+                  </span>
+                  <span className="text-gray-800 ml-6">
+                    {calculationResult.productType}
+                  </span>
+                </div>
 
-                    <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-rose-100">
-                      <span className="font-medium text-rose-700 flex items-center">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                        วิธีการขนส่ง:
-                      </span>
-                      <span className="text-gray-800 ml-6">
-                        {calculationResult.shippingMethod}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-rose-100">
-                    <span className="font-medium text-rose-700 flex items-center">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      ประเภทการคำนวณ:
-                    </span>
-                    <span className="text-gray-800 ml-6">
-                      คำนวณด้วยอัตราค่าขนส่งที่กำหนดเอง
-                    </span>
-                  </div>
-                )}
+                <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-rose-100">
+                  <span className="font-medium text-rose-700 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    วิธีการขนส่ง:
+                  </span>
+                  <span className="text-gray-800 ml-6">
+                    {calculationResult.shippingMethod}
+                  </span>
+                </div>
 
                 <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 border border-rose-100">
                   <span className="font-medium text-rose-700 flex items-center">
@@ -619,11 +473,6 @@ function App() {
                     maximumFractionDigits: 2,
                   })}{" "}
                   บาท
-                </span>
-              </div>
-              <div className="text-sm text-gray-600 mt-2">
-                <span className="bg-yellow-50 px-3 py-1 rounded-full inline-block shadow-sm">
-                  ราคานี้ยังไม่รวมภาษีมูลค่าเพิ่ม 7%
                 </span>
               </div>
             </div>
